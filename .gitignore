@@ -1,0 +1,4 @@
+# ignore folder private
+private/
+
+node_modules
