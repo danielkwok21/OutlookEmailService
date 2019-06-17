@@ -4,6 +4,7 @@ const fs = require('fs')
 const os = require('os')
 const path = require('path')
 const express = require('express')
+const bodyParser = require('body-parser')
 const app = express()
 const config = require('./others/config')
 const utils = require('./others/utils')
@@ -12,7 +13,8 @@ const utils = require('./others/utils')
 app.set('view engine', 'ejs')
 app.set('views', path.join(__dirname, './public/views'))
 app.use(express.static('public'))
-
+app.use(bodyParser.json({limit: '10mb'}));
+app.use(bodyParser.urlencoded({limit: '10mb', extended: true }));
 
 /**
  * Refresh frontend
@@ -20,6 +22,24 @@ app.use(express.static('public'))
 app.get('/', (req, res)=>{
     renderFrontEnd(res)
 })
+
+app.post('/email', (req, res)=>{
+    let recipientPersonValues = []
+    recipientPersonValues = getRecipientPersonValues(req.body.parcels)
+
+    res.send(recipientPersonValues)
+})
+
+function getRecipientPersonValues(parcels){
+    if(parcels){
+        let recipientPersonValues = parcels
+        .map(parcel=>parcel.result)
+        .map(result=>result.recipientPersonValue)
+
+        return recipientPersonValues
+    }
+    return []
+}
 
 function renderFrontEnd(res, data={}){
     res.render('index.ejs', {
