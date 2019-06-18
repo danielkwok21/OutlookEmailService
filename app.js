@@ -1,11 +1,13 @@
 'use strict'
-const http = require('http')
+const https = require('https')
 const fs = require('fs')
 const os = require('os')
 const path = require('path')
 const express = require('express')
 const bodyParser = require('body-parser')
 const app = express()
+const dotenvConfig = require('dotenv').config()
+
 const config = require('./others/config')
 const utils = require('./others/utils')
 
@@ -22,6 +24,32 @@ app.use(bodyParser.urlencoded({limit: '10mb', extended: true }));
 app.get('/', (req, res)=>{
     renderFrontEnd(res)
 })
+
+app.get('/authorize', (req, res)=>{
+    renderFrontEnd(res, {data: "authorized"})
+})
+
+app.get('/signin', (req, res)=>{
+    const authHelper = require('./helpers/auth')
+    const url = authHelper.getAuthUrl()
+
+    https.get(url, resp=>{
+        let data =''
+        resp
+        .on('data', (chunk) => {
+            data += chunk;
+        })
+        .on('end', () => {
+            res.send(data)
+        });
+
+    })
+    .on("error", (err) => {
+        console.log("Error: " + err.message);
+    });
+
+})
+
 
 app.post('/email', (req, res)=>{
     let recipientPersonValues = []
