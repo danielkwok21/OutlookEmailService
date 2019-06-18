@@ -6,6 +6,7 @@ const path = require('path')
 const express = require('express')
 const bodyParser = require('body-parser')
 const app = express()
+const cookieParser = require('cookie-parser')
 const dotenvConfig = require('dotenv').config()
 
 const config = require('./others/config')
@@ -18,23 +19,40 @@ app.set('views', path.join(__dirname, './public/views'))
 app.use(express.static('public'))
 app.use(bodyParser.json({limit: '10mb'}));
 app.use(bodyParser.urlencoded({limit: '10mb', extended: true }));
+app.use(cookieParser())
 
 /**
  * Refresh frontend
  */
 app.get('/', (req, res)=>{
-    renderFrontEnd(res)
+    try{
+        const accessToken = req.cookies.graph_access_token
+        const userName = req.cookies.graph_user_name
+    
+        if(accessToken && userName){
+            renderFrontEnd(res, {accessToken:accessToken, userName:userName})
+        }else{
+            res.redirect('/signin')
+        }
+    }catch(err){
+        renderFrontEnd(res, 'req.cookies error')
+    }
 })
 
 app.get('/authorize', async (req, res)=>{
     // Get auth code
     const code = req.query.code;
-    let token;
-    try {
-        token = await authHelper.getTokenFromCode(code);
-        res.send(token)
-    }catch (error) {
-        res.send('error in getting token')
+    if(code){
+        try {
+            await authHelper.getTokenFromCode(code, res);
+            
+            res.redirect('/');
+        }catch (error) {
+            renderFrontEnd(res, { title: 'Error', message: 'Error exchanging code for token', error: error });
+        }
+    } else {
+        // Otherwise complain
+        renderFrontEnd(res, { title: 'Error', message: 'Authorization error', error: { status: 'Missing code parameter' } });
     }
 })
 
