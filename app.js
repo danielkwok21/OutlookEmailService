@@ -10,6 +10,7 @@ const dotenvConfig = require('dotenv').config()
 
 const config = require('./others/config')
 const utils = require('./others/utils')
+const authHelper = require('./helpers/auth')
 
 //sets view engine as the package ejs
 app.set('view engine', 'ejs')
@@ -25,12 +26,19 @@ app.get('/', (req, res)=>{
     renderFrontEnd(res)
 })
 
-app.get('/authorize', (req, res)=>{
-    renderFrontEnd(res, {data: "authorized"})
+app.get('/authorize', async (req, res)=>{
+    // Get auth code
+    const code = req.query.code;
+    let token;
+    try {
+        token = await authHelper.getTokenFromCode(code);
+        res.send(token)
+    }catch (error) {
+        res.send('error in getting token')
+    }
 })
 
 app.get('/signin', (req, res)=>{
-    const authHelper = require('./helpers/auth')
     const url = authHelper.getAuthUrl()
 
     res.redirect(url)
