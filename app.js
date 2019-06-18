@@ -29,13 +29,13 @@ app.get('/', (req, res)=>{
     renderFrontEnd(res)
 })
 
-app.get('/home', (req, res)=>{
+app.get('/home', async (req, res)=>{
     try{
-        const accessToken = req.cookies.graph_access_token
-        const userName = req.cookies.graph_user_name
+        const accessToken = await authHelper.getAccessToken(req.cookies, res)
+        const user = req.cookies.graph_user
     
-        if(accessToken && userName){
-            renderFrontEnd(res, {accessToken:accessToken, userName:userName})
+        if(accessToken && user){
+            renderFrontEnd(res, {accessToken:accessToken, user:user})
         }else{
             renderFrontEnd(res, 'signed out')
         }
