@@ -15,12 +15,12 @@ const credentials = {
 const oauth2 = require('simple-oauth2').create(credentials)
 
 function getAuthUrl() {
-  const returnVal = oauth2.authorizationCode.authorizeURL({
+  const authUrl = oauth2.authorizationCode.authorizeURL({
     redirect_uri: azure.redirect_uri,
     scope: azure.app_scopes
   })
-  // console.log(`Generated auth url: ${returnVal}`)
-  return returnVal
+  
+  return authUrl
 }
 
 async function getTokenFromCode(authCode, res){

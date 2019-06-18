@@ -7,7 +7,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const app = express()
 const cookieParser = require('cookie-parser')
-const dotenvConfig = require('dotenv').config()
+const graph = require('@microsoft/microsoft-graph-client')
 
 const config = require('./others/config')
 const utils = require('./others/utils')
@@ -30,22 +30,30 @@ app.get('/', (req, res)=>{
 })
 
 app.get('/home', async (req, res)=>{
+    const data = await getAccessTokenAndUser(req, res)
+    renderFrontEnd(res, data)
+})
+
+async function getAccessTokenAndUser(req, res){
     try{
         const accessToken = await authHelper.getAccessToken(req.cookies, res)
         const user = req.cookies.graph_user
     
         if(accessToken && user){
-            renderFrontEnd(res, {accessToken:accessToken, user:user})
-        }else{
-            renderFrontEnd(res, 'signed out')
+            return {accessToken:accessToken, user:user}
         }
+        console.log('signed out')
     }catch(err){
-        renderFrontEnd(res, 'req cookies error')
+        console.log('req cookie error')
     }
-})
 
+    return 'unable to get token'
+}
+
+/**
+ * Redirected URL. Will not be accessed directly
+ */
 app.get('/authorize', async (req, res)=>{
-    // Get auth code
     const code = req.query.code;
     if(code){
         try {
@@ -53,11 +61,11 @@ app.get('/authorize', async (req, res)=>{
             
             res.redirect('/home');
         }catch (error) {
-            renderFrontEnd(res, { title: 'Error', message: 'Error exchanging code for token', error: error });
+            renderFrontEnd(res, 'Error exchanging code for token');
         }
     } else {
         // Otherwise complain
-        renderFrontEnd(res, { title: 'Error', message: 'Authorization error', error: { status: 'Missing code parameter' } });
+        renderFrontEnd(res, 'Missing code parameter');
     }
 })
 
@@ -73,23 +81,74 @@ app.get('/signout', (req, res)=>{
     res.redirect('/home');
 });
 
-app.post('/email', (req, res)=>{
+/**
+ * posts parcel object from HoppsAlgorithm
+ * To do:
+ * Implement name finding algorithm
+ */
+app.post('/parcel', (req, res)=>{
     let recipientPersonValues = []
     recipientPersonValues = getRecipientPersonValues(req.body.parcels)
 
     res.send(recipientPersonValues)
+
+    function getRecipientPersonValues(parcels){
+        if(parcels){
+            let recipientPersonValues = parcels
+            .map(parcel=>parcel.result)
+            .map(result=>result.recipientPersonValue)
+
+            return recipientPersonValues
+        }
+        return []
+    }
 })
 
-function getRecipientPersonValues(parcels){
-    if(parcels){
-        let recipientPersonValues = parcels
-        .map(parcel=>parcel.result)
-        .map(result=>result.recipientPersonValue)
+/**
+ * address book query
+ * request with query object {displayName="John Doe"}
+ */
+app.get('/people', async (req, res)=>{
+    const displayName = req.query.displayName
 
-        return recipientPersonValues
+    const result = await graphAPIPeopleSearch(req, res, displayName)
+    
+    renderFrontEnd(res, result)
+})
+
+app.get('/sendEmail', (req, res)=>{
+
+})
+
+
+async function graphAPIPeopleSearch(req, res, displayName){
+    const data = await getAccessTokenAndUser(req, res)
+    const accessToken = data.accessToken
+    const user = data.user
+
+    if(accessToken && user){
+
+        try{
+            const client = graph.Client.init({
+                authProvider: done=>{
+                    done(null, accessToken)
+                }
+            })
+
+            const queryString = '/me/people/?$search="'+displayName+'"'
+            return await client
+            .api(queryString)
+            .get()
+            
+        }catch(err){
+            return 'graph api error'
+        }
+    }else{
+        return 'signed out'
     }
-    return []
+
 }
+
 
 function renderFrontEnd(res, data={}){
     res.render('index.ejs', {
