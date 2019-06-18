@@ -109,19 +109,59 @@ app.post('/parcel', (req, res)=>{
  * request with query object {displayName="John Doe"}
  */
 app.get('/people', async (req, res)=>{
+    const NotiEmail = require('./classes/NotiEmail')
+
     const displayName = req.query.displayName
 
-    const result = await graphAPIPeopleSearch(req, res, displayName)
+    const result = await graphAPIEmail(req, res, displayName)
+
+    const emailAddress = result.value[0].userPrincipalName
     
-    renderFrontEnd(res, result)
+    const email = new NotiEmail(null, emailAddress)
+    const status = await graphAPISendMail(req, res, email)
+    
+    renderFrontEnd(res, 'successfully sent to '+emailAddress)    
+    
 })
 
-app.get('/sendEmail', (req, res)=>{
-
+app.get('/sendEmail', async (req, res)=>{
+    const NotiEmail = require('./classes/NotiEmail')
+    const email = new NotiEmail()
+    const result = await graphAPISendMail(req, res, email)
+    
+    renderFrontEnd(res, 'successfully sent')    
 })
 
 
-async function graphAPIPeopleSearch(req, res, displayName){
+
+async function graphAPISendMail(req, res, email){
+    const data = await getAccessTokenAndUser(req, res)
+    const accessToken = data.accessToken
+    const user = data.user
+
+    if(accessToken && user){
+
+        try{
+            const client = graph.Client.init({
+                authProvider: done=>{
+                    done(null, accessToken)
+                }
+            })
+
+            const queryString = '/me/sendMail'
+            return await client
+            .api(queryString)
+            .post( JSON.stringify(email))
+            
+        }catch(err){
+            return 'graph api error'
+        }
+    }else{
+        return 'signed out'
+    }
+}
+
+async function graphAPIEmail(req, res, displayName){
     const data = await getAccessTokenAndUser(req, res)
     const accessToken = data.accessToken
     const user = data.user
@@ -146,7 +186,6 @@ async function graphAPIPeopleSearch(req, res, displayName){
     }else{
         return 'signed out'
     }
-
 }
 
 
