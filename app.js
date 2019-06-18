@@ -24,7 +24,12 @@ app.use(cookieParser())
 /**
  * Refresh frontend
  */
+
 app.get('/', (req, res)=>{
+    renderFrontEnd(res)
+})
+
+app.get('/home', (req, res)=>{
     try{
         const accessToken = req.cookies.graph_access_token
         const userName = req.cookies.graph_user_name
@@ -32,10 +37,10 @@ app.get('/', (req, res)=>{
         if(accessToken && userName){
             renderFrontEnd(res, {accessToken:accessToken, userName:userName})
         }else{
-            res.redirect('/signin')
+            renderFrontEnd(res, 'signed out')
         }
     }catch(err){
-        renderFrontEnd(res, 'req.cookies error')
+        renderFrontEnd(res, 'req cookies error')
     }
 })
 
@@ -46,7 +51,7 @@ app.get('/authorize', async (req, res)=>{
         try {
             await authHelper.getTokenFromCode(code, res);
             
-            res.redirect('/');
+            res.redirect('/home');
         }catch (error) {
             renderFrontEnd(res, { title: 'Error', message: 'Error exchanging code for token', error: error });
         }
@@ -62,6 +67,11 @@ app.get('/signin', (req, res)=>{
     res.redirect(url)
 })
 
+app.get('/signout', (req, res)=>{
+    authHelper.clearCookies(res);
+    
+    res.redirect('/home');
+});
 
 app.post('/email', (req, res)=>{
     let recipientPersonValues = []

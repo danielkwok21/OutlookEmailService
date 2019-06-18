@@ -46,5 +46,13 @@ function saveValuesToCookie(token, res){
   console.log('token saved...')
 }
 
+function clearCookies(res){
+  res.clearCookie('graph_access_token');
+  res.clearCookie('graph_user_name');
+  // res.clearCookie('graph_access_token', {maxAge: 3600000, httpOnly: true});
+  // res.clearCookie('graph_user_name', {maxAge: 3600000, httpOnly: true});
+}
+
+exports.clearCookies = clearCookies
 exports.getTokenFromCode = getTokenFromCode
 exports.getAuthUrl = getAuthUrl
