@@ -33,21 +33,7 @@ app.get('/signin', (req, res)=>{
     const authHelper = require('./helpers/auth')
     const url = authHelper.getAuthUrl()
 
-    https.get(url, resp=>{
-        let data =''
-        resp
-        .on('data', (chunk) => {
-            data += chunk;
-        })
-        .on('end', () => {
-            res.send(data)
-        });
-
-    })
-    .on("error", (err) => {
-        console.log("Error: " + err.message);
-    });
-
+    res.redirect(url)
 })
 
 
