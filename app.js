@@ -108,19 +108,33 @@ app.post('/parcel', (req, res)=>{
  * address book query
  * request with query object {displayName="John Doe"}
  */
-app.get('/people', async (req, res)=>{
+app.get('/people/:send', async (req, res)=>{
     const NotiEmail = require('./classes/NotiEmail')
 
     const displayName = req.query.displayName
 
     const result = await graphAPIEmail(req, res, displayName)
+    
+    try{
+        const emailAddress = result.value.filter(v=>{
+            return v.scoredEmailAddresses[0].relevanceScore>1
+        })[0].scoredEmailAddresses[0].address
+    
+        console.log(emailAddress)
+    
+        const email = new NotiEmail(null, emailAddress)
 
-    const emailAddress = result.value[0].userPrincipalName
-    
-    const email = new NotiEmail(null, emailAddress)
-    const status = await graphAPISendMail(req, res, email)
-    
-    renderFrontEnd(res, 'successfully sent to '+emailAddress)    
+        if(req.param.send=='no'){
+            const status = await graphAPISendMail(req, res, email)
+            renderFrontEnd(res, 'successfully sent to '+emailAddress)
+        }else{
+            throw err
+        }
+
+    }catch(err){
+        res.send(result)
+        // renderFrontEnd(res, 'low confidence')
+    }  
     
 })
 
